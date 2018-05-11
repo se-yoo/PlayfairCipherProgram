@@ -35,7 +35,7 @@ namespace _3510_encryptionTest
         {
             Encrypt enc = new Encrypt(this.encKeyInput.Text, this.textInput.Text);
             enc.textRelocation(); enc.makeEncpan();
-            this.decText.Text = enc.decode();
+            this.decText.Text = enc.decode(this.encText.Text);
         }
     }
 }

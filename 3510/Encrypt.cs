@@ -21,6 +21,8 @@ namespace _3510_encryptionTest
         private char[] textReloc;
         private string textRelocSpace = "";//출력하는 재배치문자열
 
+        int xCnt = 0;
+
         public Encrypt(){}
         public Encrypt(string key, string text)
         {
@@ -50,16 +52,27 @@ namespace _3510_encryptionTest
         // 문자열 재배치
         public void textRelocation()
         {
+            //z는 q로 취급
+            text = text.Replace("z", "q");
+
             char[] tmptext = text.ToCharArray();
             string tmptext2 = "";
 
             tmptext2 += tmptext[0];//첫글자 추가
             for (int i = 1; i < tmptext.Length; i++)
             {
-                if (tmptext[i] == tmptext[i - 1]&&tmptext2.Length%2==1) tmptext2 += "x";//이전꺼와 같으면 x추가
+                if (tmptext[i] == tmptext[i - 1] && tmptext2.Length % 2 == 1)
+                {
+                    tmptext2 += "x";//이전꺼와 같으면 x추가
+                    xCnt++;
+                }
                 tmptext2 += tmptext[i];
             }
-            if (tmptext2.Length % 2 != 0) tmptext2 += "x";//홀수자리면 마지막에 x추가
+            if (tmptext2.Length % 2 != 0)
+            {
+                tmptext2 += "x";//홀수자리면 마지막에 x추가
+                xCnt++;
+            }
 
             textReloc = tmptext2.ToCharArray();
 
@@ -79,6 +92,9 @@ namespace _3510_encryptionTest
             //키중복제거
             deduplication();
             string tmpenc = key;
+
+            //z는 q로 취급
+            tmpenc = tmpenc.Replace("z", "q");
 
             //a~y까지 중복없는 거 추가(z는 q와 같이 취급해서 포함x)
             for (char i = 'a'; i < 'z'; i++)
@@ -178,9 +194,98 @@ namespace _3510_encryptionTest
         }
 
         //복호화
-        public string decode()
+        public string decode(string enc)
         {
-            return "test";
+            string decText = "";
+            enc = enc.Replace(" ", "");
+            char[] encT = enc.ToCharArray();//암호문
+
+            //암호판에서의 문자열들 인덱스 저장(행, 열)
+            int[,] index = new int[encT.Length, 2];
+
+            for (int i = 0; i < encT.Length; i++)
+            {
+                for (int j = 0; j < 5; j++)//행
+                {
+                    for (int k = 0; k < 5; k++)//열
+                    {
+                        if (encT[i] == encpan[j, k])
+                        {
+                            index[i, 0] = j;
+                            index[i, 1] = k;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < encT.Length; i += 2)
+            {
+                int row = 0, col = 0;
+
+                //같은 열일때 행-1,열그대로
+                if (index[i, 1] == index[i + 1, 1])
+                {
+                    row = index[i, 1];
+
+                    if (index[i, 0] - 1 < 0) col = 4;
+                    else col = index[i, 0] - 1;
+                    decText += encpan[col, row];
+
+                    if (index[i + 1, 0] - 1 < 0) col = 4;
+                    else col = index[i + 1, 0] - 1;
+                    decText += (encpan[col, row] + " ");
+                }
+                //같은 행일때 행그대로,열-1
+                else if (index[i, 0] == index[i + 1, 0])
+                {
+                    col = index[i, 0];
+
+                    if (index[i, 1] - 1 < 0) row = 4;
+                    else row = index[i, 1] - 1;
+                    decText += encpan[col, row];
+
+                    if (index[i + 1, 1] - 1 < 0) row = 4;
+                    else row = index[i + 1, 1] - 1;
+                    decText += (encpan[col, row] + " ");
+                }
+                else
+                {
+                    col = index[i + 1, 0];
+                    row = index[i, 1];
+
+                    decText += encpan[col, row];
+
+                    col = index[i, 0];
+                    row = index[i + 1, 1];
+
+                    decText += (encpan[col, row] + " ");
+                }
+            }
+
+            //공백없애고 x지우기
+            decText=decText.Replace(" ","");
+            string tmpdec = ""+decText[0];
+            for (int i = 1; i < decText.Length; i++)
+            {
+                if (xCnt > 0 && decText[i]=='x')
+                {
+                    //마지막글자이고 평문이랑 길이가 똑같거나 엑스 양옆의 내용이 같으면 x빼기
+                    if (((i == decText.Length - 1) && (tmpdec.Length == text.Length))||(decText[i - 1].Equals(decText[i + 1])))
+                    {
+                        Debug.WriteLine(tmpdec.Length + " " + text.Length);
+                    
+                        xCnt--;
+                        continue;
+                    }
+                }
+                tmpdec += decText[i];
+            }
+
+            //q를 q와 z라고 출력(읽는 사람의 센스에 따라...)
+            tmpdec=tmpdec.Replace("q", "(q/z)");
+            
+            return tmpdec;
         }
 
         public string getKey()
